@@ -5,16 +5,16 @@ module Gaby
     def initialize(paramas)
       paramas.each do |k, v|
         if PARAMS.include?(k.to_sym)
-          send(k, v) 
+          send(k, v)
         else
           warn "unknown parameter - #{k}."
         end
       end
     end
 
-    def view_id(id)
-      @view_id ||= Gaby.default_view_id
-      @view_id = id
+    def view_id(id = nil)
+      @view_id ||= Gaby.config.view_id
+      @view_id = id || @view_id # 引数があれば上書き、無ければ現状の設定値を返す
     end
 
     def dimensions(*args)
@@ -27,23 +27,12 @@ module Gaby
       @metrics << args
     end
 
-    def date(value)
-      if value.is_a?(Range)
-        start_date parse_date(value.first)
-        end_date parse_date(value.last)
-      else
-        v = parse_date(value)
-        start_date(v)
-        end_date(v)
-      end
-    end
-
     def to_query(options = {})
-      # options - :date, :index
+      # options - date, index, filters, view_id
       query = {
-        ids: "ga:#{@view_id}",
-        start_date:  (Date.today - 31).strfime("%F"),
-        end_date:    (Date.today - 1).strfime("%F"),
+        ids: "ga:#{view_id}",
+        start_date:  (Date.today - 31).strftime("%F"),
+        end_date:    (Date.today - 1).strftime("%F"),
         start_index: 1,
         max_results: 1000
       }
@@ -62,11 +51,13 @@ module Gaby
       end
 
       if options[:index]
-        query[:start_index] = options[:index].first 
+        query[:start_index] = options[:index].first
         query[:max_results] = options[:index].last
       end
 
-      [dimensions, metrics, filters].each do |p|
+      query[:filter] = options[:filter] if options[:filter]
+
+      [dimensions, metrics].each do |p|
         query.merge!(p.to_params)
       end
       query.map{ |k, v| [k.to_s.sub("_", "-"), v] }.to_h
