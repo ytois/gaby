@@ -1,5 +1,3 @@
-require 'singleton'
-
 module Gaby
   class Configuration
     include Singleton
@@ -54,6 +52,21 @@ module Gaby
 
     def api
       @analytics ||= @client.discovered_api('analytics', 'v3')
+    end
+
+    def excute(query)
+      raise "authorize error" unless authorized?
+
+      res = client.execute(
+        api_method: api.data.ga.get,
+        parameters: query,
+      )
+      if res.response.status == 200
+        JSON.parse(res.response.body)
+      else
+        # TODO: エラーハンドリング
+        res
+      end
     end
   end
 end

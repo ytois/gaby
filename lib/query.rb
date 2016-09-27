@@ -1,4 +1,6 @@
 module Gaby
+  # TODO: ディメンション名orメトリクス名が正しいか判定するメソッド追加する
+  # TODO: filter.not(metrics: /regexp/)でフィルタできるように
   class Query
     PARAMS = [:view_id, :dimensions, :metrics].freeze
 
@@ -55,7 +57,7 @@ module Gaby
         query[:max_results] = options[:index].last
       end
 
-      query[:filter] = options[:filter] if options[:filter]
+      query[:filters] = options[:filters] if options[:filters]
 
       [dimensions, metrics].each do |p|
         query.merge!(p.to_params)
