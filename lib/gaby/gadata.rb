@@ -19,6 +19,7 @@ module Gaby
       end
     end
 
+    # 次の範囲を取得
     def next(max_results = nil)
       raise ArgumentError if max_results.to_i > 10000
       return unless @rows # 初回取得前ならnilで返す
@@ -30,7 +31,7 @@ module Gaby
 
       # 取得して初期化
       res = Gaby.excute(query)
-      return unless res['rows'] # 取得結果が空ならnilで返す
+      return if res['rows'].nil? || res['rows'] == []  # 取得結果が空ならnilで返す
       initialize(res, query)
       @rows
     end
@@ -39,6 +40,7 @@ module Gaby
     def page
     end
 
+    # 全件取得
     def all
       unless @query["start-index"] == 1
         # 取得済み範囲が1~で無い場合はリセットして再取得

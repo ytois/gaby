@@ -1,3 +1,5 @@
+require 'date'
+
 module Gaby
   # TODO: ディメンション名orメトリクス名が正しいか判定するメソッド追加する
   # TODO: filter.not(metrics: /regexp/)でフィルタできるように

@@ -1,3 +1,6 @@
+require 'singleton'
+require 'json'
+
 module Gaby
   class Configuration
     include Singleton
