@@ -1,32 +1,35 @@
-# gaby
+# Gaby
 
 ## How to use
 
 ```
+
 # confing
-Gaby.configure do |config|
-  config.key_file = "" # p12
-  config.secret   = ""
-  config.account  = ""
-  config.view_id  = "" # Default view-id
+Gaby::Client.configure do |config|
+  config.account  = {{ account_email_address }}
+  config.key_file = {{ p12_key_file_path }}
+  config.secret   = {{ key_secret }}
 end
 
 # authorize
-Gaby.authorize!
+Gaby::Client.authorize!
 
 # creat report model
-report = Gabyy::Report.new(
-  dimensions: :pagePath,
-  metrics: [:pageview, :sessions]
-)
+segment = Gaby::Segment::Simple.new({type: :dimension, name: :landingPagePath, expressions: ['^/aroma', '^/esthe']})
+segments = Gaby::SegmentFilter.new([segment])
 
-report.metrics << :users # add metrics
+report = Gaby::Report.new({
+  view_id:    {{ view_id }},
+  dimensions: [:landingPagePath, :segment],
+  metrics:    [:sessions, :pageviews],
+  dates:      "2016-11-01".."2016-11-30",
+  segments:   [segments],
+})
+
 
 # get data
-report.get(
-  date: Date.new(2016, 1, 1)..Date.new(2016, 1, 31),
-  index: 1..1000,
-  filters: 'ga:pagePath=~^/index.html',
-)
+data = report.get
+
 ```
+
 
