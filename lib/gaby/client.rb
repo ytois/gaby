@@ -27,9 +27,8 @@ module Gaby
         yield config
       end
 
+      # TODO: トークンの有効期限が切れた場合の対応
       def authorize!
-        return authorized if authorized?
-
         @client = Google::APIClient.new(
           application_name:    APP_NAME,
           application_version: APP_VERSION,
@@ -47,26 +46,38 @@ module Gaby
         @authorized = false
       end
 
+      # def refresh!
+      #   @client.authorization = Signet::OAuth2::Client.new(
+      #     token_credential_uri: 'https://accounts.google.com/o/oauth2/token',
+      #     audience:             'https://accounts.google.com/o/oauth2/token',
+      #     scope:                'https://www.googleapis.com/auth/analytics.readonly',
+      #     issuer:               config.account,
+      #     signing_key:          signing_key,
+      #     refresh_token:        refresh_token,
+      #   )
+      #   @client.authorization.refresh!
+      #   @authorized = true
+      # rescue
+      #   @authorized = false
+      # end
+
       def authorized?
         @authorized
       end
 
-      def excute(*query)
-        uri = URI.parse(END_POINT)
-        request = Net::HTTP::Post.new(uri.path, {
-          'Content-Type' => 'application/json',
-          'Authorization' => "Bearer #{access_token}",
-        })
-
-        request.body = parse_query(*query).to_json
-
-        http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = true
-        response = http.start { |h| h.request(request) }
-        JSON.parse(response.body)
+      def get(query)
+        # 単一レポートのリクエスト
+        return unless query.is_a?(Gaby::Query)
+        response = excute(query)
+        # TODO: エラー処理
+        # if response
+        Gaby::ReportData.new(response["reports"].first, query)
       end
 
-      def excute_all(query)
+      def gets(*queries)
+        # 複数レポートの一括リクエスト
+        response = excute(*queries)
+        Gaby::ReportData.new(response, query)
       end
 
       private
@@ -81,6 +92,25 @@ module Gaby
 
       def access_token
         @client.authorization.access_token
+      end
+
+      # def refresh_token
+      #   @client.authorization.refresh_token
+      # end
+
+      def excute(*query)
+        uri = URI.parse(END_POINT)
+        request = Net::HTTP::Post.new(uri.path, {
+          'Content-Type' => 'application/json',
+          'Authorization' => "Bearer #{access_token}",
+        })
+
+        request.body = parse_query(*query).to_json
+
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = true
+        response = http.start { |h| h.request(request) }
+        JSON.parse(response.body)
       end
 
       def parse_query(*query)

@@ -1,6 +1,6 @@
 module Gaby
   class Query
-    PARAMS = [:view_id, :dimensions, :metrics, :dates, :page_size, :order_by, :filters, :filters_v3, :segments].freeze
+    PARAMS = [:view_id, :dimensions, :metrics, :dates, :index, :order_by, :segments, :filters].freeze
     attr_reader(*PARAMS)
 
     def initialize(params)
@@ -14,9 +14,9 @@ module Gaby
         dimensions: dimensions,
         metrics: metrics,
         dates: dates,
-        # index: index,
-        # filters: filters,
-        # sort: sort,
+        index: index,
+        segments: segments,
+        filters: filters,
       }.to_s
     end
 
@@ -40,47 +40,67 @@ module Gaby
       @dates = Parameter::Dates.new(date)
     end
 
-    def page_size=(size = nil)
-      @page_size = size || @page_size
+    def index=(range)
+      @index = Parameter::Index.new(range)
     end
 
-    def filters=(*args)
+    def page_token=(int)
+      @index ||= Parameter::Index.new(1..1000)
+      @index.page_token = int
+    end
+
+    def filters=(filter)
+      @filters = filter
     end
 
     def order_by=(dimension = nil, order = :asc)
     end
 
     def segments=(*args)
-      @segments = [args].flatten
+      @segments = args.flatten.uniq.compact
+
+      # セグメントを使用する場合はディメンションに:segmentが必須
+      if @segments.present?
+        if dimensions.present?
+          @dimensions << :segment
+        else
+          self.dimensions = :segment
+        end
+      end
+      @segments
     end
 
     def to_query
       query = {}
       PARAMS.each do |p|
-        if p == :segments
-          segment_filter = send(p).map do |segment|
-            segment.to_query
+        if send(p).present?
+          if p == :segments
+            filter = send(p).map do |f|
+              f.to_query
+            end
+            query.merge!(p => filter)
+          else
+            query.merge!(send(p).to_query)
           end
-          query.merge!(segments: segment_filter) if segment_filter.present?
-        else
-          query.merge!(send(p).to_query) unless send(p).nil?
         end
       end
+
       query
     end
 
     private
 
     def default_parameters
-      dates = 31.day.ago.to_date..Date.yesterday
+      self.dates = 31.day.ago.to_date..Date.yesterday
+      @dimension_filter_operator = :and
     end
 
     def set_parameters (params)
       params.each do |name, value|
         if PARAMS.include?(name.to_sym)
-          send("#{name}=", value)
+          send("#{name}=", value) if value
         else
-          warn "unknown parameter - #{k}."
+          warn "unknown parameter - #{name}."
         end
       end
       self

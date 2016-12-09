@@ -14,21 +14,41 @@ end
 # authorize
 Gaby::Client.authorize!
 
-# creat report model
-segment = Gaby::Segment::Simple.new({type: :dimension, name: :landingPagePath, expressions: ['^/aroma', '^/esthe']})
-segments = Gaby::SegmentFilter.new([segment])
 
+
+# create dynamic segment
+cond1 = Gaby::SimpleSegment.dimension.where(deviceCategory: 'mobile')
+cond2 = Gaby::SimpleSegment.dimension.where(pagePath: /^\/aroma/)
+cond3 = Gaby::SimpleSegment.dimension.where(channelGrouping: "Direct")
+
+segment = Gaby::Segment.new("segment_name").session(
+  cond1.or(cond2),
+  cond3,
+)
+
+# create filter
+filter = Gaby::Filter.new(
+  Gaby::Filter.dimension.where(pagePath: /^\/aroma/),
+  Gaby::Filter.dimension.where(pagePath: /^\/aroma\/area/).not,
+  Gaby::Filter.metric.where('pageviews > 100').not,
+)
+
+# create report model
 report = Gaby::Report.new({
   view_id:    {{ view_id }},
-  dimensions: [:landingPagePath, :segment],
+  dimensions: [:pagePath],
   metrics:    [:sessions, :pageviews],
-  dates:      "2016-11-01".."2016-11-30",
-  segments:   [segments],
+  dates:      [1.day.ago],
+  index:      1..1000,
+  filters:    filter,
+  segments:   [segment],
 })
+
 
 
 # get data
 data = report.get
+data = report.get_all
 
 ```
 
