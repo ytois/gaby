@@ -81,16 +81,17 @@ module Gaby
       end
 
       def to_filter
-        query = {
+        dimension_filter = {
           dimensionName: "ga:#{@name}",
           operator: @operator,
           expressions: [@expressions].flatten,
           caseSensitive: @case_sensitive,
         }
-        query[:minComparisonValue] = @min_comparison_value if @min_comparison_value
-        query[:maxComparisonValue] = @max_comparison_value if @max_comparison_value
+        dimension_filter[:minComparisonValue] = @min_comparison_value if @min_comparison_value
+        dimension_filter[:maxComparisonValue] = @max_comparison_value if @max_comparison_value
+        query = {dimensionFilter: dimension_filter}
         query[:not] = @not if @not
-        {dimensionFilter: query}
+        query
       end
 
       def to_and_clauses

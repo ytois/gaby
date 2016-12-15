@@ -11,6 +11,13 @@ Gaby::Client.configure do |config|
   config.secret   = {{ key_secret }}
 end
 
+# or
+
+Gaby::Client.configure do |config|
+  config.client_id = {{ client_id }}
+  config.secret    = {{ client_secret }}
+end
+
 # authorize
 Gaby::Client.authorize!
 

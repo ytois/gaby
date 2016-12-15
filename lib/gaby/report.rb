@@ -23,12 +23,15 @@ module Gaby
     end
 
     def get(options = {})
-      get_raw(options)
+      query = Marshal.load(Marshal.dump(@query))
+      query.parameters = options
+      Gaby::Client.get(query)
     end
 
     def get_all(options = {})
       @query.index = 1..10000
       data = get(options)
+
       while data.next_page_token
         @query = data.next_page_query
         data.merge(get(options))
@@ -41,7 +44,7 @@ module Gaby
     def get_raw(options = {})
       query = Marshal.load(Marshal.dump(@query))
       query.parameters = options
-      Gaby::Client.get(query)
+      Gaby::Client.get_raw(query)
     end
   end
 end

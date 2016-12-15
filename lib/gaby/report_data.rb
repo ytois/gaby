@@ -46,6 +46,8 @@ module Gaby
       @max = report["data"]["maximums"]
       @is_golden = report["data"]["isDataGolden"]
       @rows = parse_rows(report["data"]["rows"])
+
+      define_column_name
     end
 
     def inspect
@@ -64,20 +66,29 @@ module Gaby
       @rows.last(int)
     end
 
-    # TODO: メソッドチェーンができるように
     def by_segment(segment_name)
-      return unless @dimensions.include?(:segment)
       # セグメントでフィルタ
-      @rows.select do |row|
-        row.dimensions.include?(segment_name.to_s)
+      return unless @dimensions.include?(:segment)
+      dup_data = self.dup
+      rows = @rows.select do |row|
+        row.dimension.values.include?(segment_name.to_s)
       end
+      dup_data.set_rows(rows)
+      dup_data
     end
 
     def filter_dimensions(name, regexp)
       # ディメンションをフィルタ
-      @rows.select do |row|
+      dup_data = self.dup
+      rows = @rows.select do |row|
         row.dimension[name].match(regexp)
       end
+      dup_data.set_rows(rows)
+      dup_data
+    end
+
+    # TODO: 複数日付の場合絞りこめるように
+    def date(int)
     end
 
     def to_a
@@ -98,6 +109,10 @@ module Gaby
       @query = report.query
       @next_page_token = report.next_page_token
       self
+    end
+
+    def set_rows(rows)
+      @rows = rows
     end
 
     private
@@ -123,8 +138,18 @@ module Gaby
     end
 
     def parse_rows(rows)
+      return [] unless rows
       rows.map do |row|
         ReportRow.new(row, @dimensions, @metrics)
+      end
+    end
+
+    def define_column_name
+      # メトリクス名でアクセスできるように
+      @metrics.keys.each do |name|
+        self.class.send(:define_method, name) do
+          @rows.map(&name)
+        end
       end
     end
   end
@@ -137,6 +162,8 @@ module Gaby
       @metrics_info = metrics
       parse_dimension_columns(row["dimensions"]) if row["dimensions"]
       parse_metrics_columns(row["metrics"])
+
+      define_column_name
     end
 
     def inspect
@@ -171,6 +198,13 @@ module Gaby
 
     def define_column_name
       # row.sessionsなどでアクセスできるように
+      @metrics_info.keys.each_with_index do |name, i|
+        self.class.send(:define_method, name) do
+          @metric.map do |m|
+            m[i]
+          end
+        end
+      end
     end
   end
 end
